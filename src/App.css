@@ -1,0 +1,217 @@
+/* ===== Stylify — Modern Wide Layout ===== */
+/* Основная цветовая палитра и переменные (цвета, радиусы, отступы и тени) */
+:root {
+  --bg: #0f1220; /* тёмный фон */
+  --text: #e6e9ef; /* основной цвет текста */
+  --muted: #a5aec1; /* вторичный текст (подписи) */
+  --accent: #7c5cff; /* основной акцент (фиолетовый) */
+  --accent-2: #19d3da; /* дополнительный акцент (бирюзовый) */
+  --glass: rgba(255, 255, 255, 0.06); /* прозрачный эффект (фон карточек) */
+  --glass-strong: rgba(255, 255, 255, 0.1); /* более плотный эффект стекла */
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35); /* тень */
+  --r: 16px; /* радиус скругления */
+  --sp: 20px; /* стандартный отступ */
+}
+
+/* ---------- БАЗОВЫЕ НАСТРОЙКИ СТРАНИЦЫ ---------- */
+body {
+  margin: 0;
+  /* Фон — сложный градиент с разными оттенками синего */
+  background: radial-gradient(
+      1000px 700px at 20% -20%,
+      #182034,
+      transparent 60%
+    ),
+    radial-gradient(800px 600px at 120% 10%, #1a1535, transparent 40%),
+    radial-gradient(1200px 900px at 50% 120%, #0b0e1a, #0b0e1a);
+  color: var(--text); /* текст светлый */
+  font-family: "Inter", sans-serif; /* шрифт */
+}
+
+/* ---------- ОСНОВНОЙ КОНТЕЙНЕР ---------- */
+.app {
+  max-width: 1200px; /* ширина контента */
+  margin: 40px auto; /* центрирование по горизонтали */
+  padding: 0 24px; /* боковые отступы */
+}
+
+/* Заголовок */
+h1 {
+  font-size: 34px;
+  font-weight: 900; /* жирный */
+  letter-spacing: -0.02em; /* немного плотнее */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------- ПАНЕЛЬ ФИЛЬТРОВ ---------- */
+.panel.controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: nowrap; /* не переносится */
+  padding: 18px 28px;
+  border-radius: var(--r);
+  background: rgba(255, 255, 255, 0.05); /* полупрозрачный фон */
+  border: 1px solid var(--glass-strong);
+  backdrop-filter: blur(12px); /* эффект размытого стекла */
+  margin-bottom: 32px;
+}
+
+/* Группа фильтров (Style, Season, Limit) */
+.controls-group {
+  display: flex;
+  justify-content: flex-start;
+  gap: 24px;
+  flex: 1;
+}
+
+/* Метки (названия фильтров) */
+.controls label {
+  display: flex;
+  flex-direction: column;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+}
+
+/* Поля select и input */
+.controls select,
+.controls input {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-strong);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 14px;
+  width: 100%;
+}
+
+/* Блок с кнопками Generate и Clear */
+.toolbar {
+  display: flex;
+  gap: 12px;
+}
+
+/* Общий стиль кнопок */
+.btn {
+  border: none;
+  cursor: pointer;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  transition: 0.2s;
+}
+
+/* Акцентная кнопка (Generate outfit) */
+.btn--accent {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #0b0e1a; /* тёмный текст */
+}
+
+/* Вторичная кнопка (Clear all) */
+.btn--ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  border: 1px solid var(--glass-strong);
+}
+
+/* Эффект при наведении */
+.btn:hover {
+  transform: translateY(-2px); /* лёгкое поднятие */
+}
+
+/* ---------- СЕТКА КАРТОЧЕК ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(220px, 1fr)
+  ); /* адаптивная сетка */
+  gap: 20px;
+}
+
+/* Карточка вещи */
+.card {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 12px;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  transition: 0.2s;
+}
+
+/* Ховер-анимация карточки */
+.card:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Изображение вещи */
+.card img {
+  width: 100%;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+/* Кнопка “Wear” */
+.card button {
+  margin-top: 8px;
+  width: 100%;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #0b0e1a;
+  font-weight: 700;
+  padding: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+/* Ховер для кнопки “Wear” */
+.card button:hover {
+  filter: brightness(1.1);
+}
+
+/* ---------- ПРИМЕРОЧНАЯ ---------- */
+.fitting {
+  margin-top: 40px;
+  text-align: center;
+}
+
+/* Холст с аватаром */
+.canvas {
+  position: relative;
+  margin: 0 auto;
+  width: 360px;
+  height: 640px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+}
+
+/* Изображения (аватар + одежда) */
+.canvas img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* ---------- АДАПТИВНОСТЬ ---------- */
+@media (max-width: 900px) {
+  .panel.controls {
+    flex-direction: column; /* фильтры вертикально на мобильных */
+    align-items: stretch;
+  }
+  .controls-group {
+    flex-direction: column;
+  }
+  .toolbar {
+    justify-content: flex-end;
+  }
+}
