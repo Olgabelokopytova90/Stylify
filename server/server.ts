@@ -1,7 +1,12 @@
 // server/server.ts
+import path from "path";
 import "dotenv/config";
+import dotenv from "dotenv";
 import type { Request, Response, NextFunction } from "express";
 import express from "express";
+
+dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
+
 import db from "./db/connect";
 
 import outfitRoutes from "./routes/outfitRoutes";

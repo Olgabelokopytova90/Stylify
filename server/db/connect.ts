@@ -1,8 +1,7 @@
-// server/db/connect.ts
 import { Pool } from "pg";
-import "dotenv/config";
 
 const { DATABASE_URL, NODE_ENV } = process.env;
+
 if (!DATABASE_URL) throw new Error("DATABASE_URL is missing in .env");
 
 export const pool = new Pool({
@@ -20,7 +19,6 @@ pool.on("error", (err) => {
 
 export default {
   async ping() {
-    // быстрая проверка соединения
     const client = await pool.connect();
     try {
       const r = await client.query("SELECT NOW()");

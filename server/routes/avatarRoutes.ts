@@ -1,5 +1,5 @@
 import { Router } from "express";
-import avatarController from "../controllers/avaratController.ts";
+import avatarController from "../controllers/avatarController.js";
 
 const router = Router();
 
