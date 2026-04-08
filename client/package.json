@@ -1,0 +1,48 @@
+{
+  "name": "stylify",
+  "private": true,
+  "version": "0.0.0",
+  "main": "server/server.ts",
+  "type": "module",
+  "scripts": {
+    "start": "npm run server",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "server": "tsx watch server/server.ts",
+    "lint": "eslint .",
+    "client": "vite",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "p": "^0.2.0",
+    "pg": "^8.16.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.8.1",
+    "@types/pg": "^8.15.5",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
+    "globals": "^16.4.0",
+    "tsx": "^4.20.6",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.45.0",
+    "vite": "^7.1.7"
+  },
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2020",
+    "esModuleInterop": true,
+    "moduleResolution": "node"
+  }
+}

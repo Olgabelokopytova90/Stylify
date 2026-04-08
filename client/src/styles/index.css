@@ -1,0 +1,81 @@
+:root {
+  --bg: #0f1220;
+  --text: #e6e9ef;
+  --muted: #a5aec1;
+  --accent: #7c5cff;
+  --accent-2: #19d3da;
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-strong: rgba(255, 255, 255, 0.1);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --r: 16px;
+  --sp: 20px;
+
+  font-family: "Inter", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(1000px 700px at 20% -20%, #182034, transparent 60%),
+    radial-gradient(800px 600px at 120% 10%, #1a1535, transparent 40%),
+    radial-gradient(1200px 900px at 50% 120%, #0b0e1a, #0b0e1a);
+  color: var(--text);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+h1 {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel.controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: nowrap;
+  padding: 18px 28px;
+  border-radius: var(--r);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-strong);
+  backdrop-filter: blur(12px);
+  margin-bottom: 32px;
+}
