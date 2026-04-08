@@ -13,6 +13,8 @@ import outfitRoutes from "./routes/outfitRoutes";
 import userRouter from "./routes/userRoutes";
 import avatarRouter from "./routes/avatarRoutes";
 import itemRoutes from "./routes/itemRoutes";
+import userProfileRoutes from "./routes/userProfileRoutes";
+import avatarGenerationRoutes from "./routes/avatarGenerationRoutes";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -20,6 +22,8 @@ const PORT = Number(process.env.PORT) || 3000;
 console.log("DB URL starts with:", process.env.DATABASE_URL?.slice(0, 35));
 
 app.use(express.json());
+
+app.use("/generated-avatars", express.static(path.resolve(process.cwd(), "public", "generated-avatars")));
 
 // health-check для оркестратора/браузера
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
@@ -48,6 +52,8 @@ app.use("/api/users", userRouter);
 app.use("/api/avatars", avatarRouter);
 app.use("/api/outfits", outfitRoutes);
 app.use("/api/items", itemRoutes);
+app.use("/api/user-profiles", userProfileRoutes);
+app.use("/api/avatar-generations", avatarGenerationRoutes);
 
 app.use((req, res) => {
   res.status(404).send("oops, nothing here!");
