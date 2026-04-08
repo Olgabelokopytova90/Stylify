@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react"; // хуки React
-import { getOutfitSimple } from "../api/client"; // API-функция загрузки вещей (по фильтрам)
+import { getOutfitSimple, getLatestAvatarGeneration } from "../api/client"; // API-функция загрузки вещей (по фильтрам)
 import type { Filters, Item, Slot, SelectedBySlot } from "../features/outfit/types"; // типы для строгой типизации
 import Layout from "../shared/ui/Layout"; // общий каркас страницы
 import Controls from "../features/outfit/components/Controls"; // панель фильтров и кнопок
 import OutfitGrid from "../features/outfit/components/OutfitGrid"; // сетка карточек одежды
 import OutfitPreview from "../features/outfit/components/OutfitPreview"; // «примерочная» с аватаром и слоями
 import "../styles/index.css"; // стили приложения
+
+
 
 // ВАЖНО: в types.Item должны быть необязательные поля:
 // style_tags?: string[]; seasons?: string[];
@@ -14,6 +16,8 @@ import "../styles/index.css"; // стили приложения
 export default function App() {
   // allItems — СЫРЫЕ данные, пришедшие с сервера (после нормализации и дедупликации)
   const [allItems, setAllItems] = useState<Item[]>([]);
+
+  const [avatarUrl, setAvatarUrl] = useState("/images/models/body_rectangle.png");
 
   // filters — «единственный источник правды» для фильтрации и API-запроса
   const [filters, setFilters] = useState<Filters>({
@@ -24,6 +28,11 @@ export default function App() {
 
   // selectedBySlot — надетые вещи (по слотам): top, bottom, outerwear, shoes
   const [selectedBySlot, setSelectedBySlot] = useState<SelectedBySlot>({});
+
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
+const [avatarError, setAvatarError] = useState<string | null>(null);
 
   // порядок отрисовки слоёв на аватаре (низ под верхом, поверх — верхняя одежда)
   const layerOrder: Slot[] = ["bottom", "top", "outerwear"];
@@ -136,6 +145,18 @@ export default function App() {
     // запускаем эффект при изменении фильтров: style/season/limit
   }, [filters.style, filters.season, filters.limit]);
 
+  useEffect(() => {
+  getLatestAvatarGeneration(6)
+    .then((data) => {
+      if (data?.image_url) {
+        setAvatarUrl(`http://localhost:3000${data.image_url}?t=${Date.now()}`);;
+      }
+    })
+    .catch((e) => {
+      console.error("Avatar fetch error:", e);
+    });
+}, []);
+
   // --------------- filtering for grid & generation (клиентская фильтрация) ---------------
   const filteredItems = useMemo(() => {
     // берём текущие значения фильтров в нижнем регистре
@@ -229,6 +250,123 @@ export default function App() {
         style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}
       ></div>
 
+      <div style={{ marginBottom: 20 }}>
+  <h3>Avatar</h3>
+
+  <input
+    type="file"
+    accept="image/*"
+    onChange={(e) => {
+      const file = e.target.files?.[0] ?? null;
+      setSelectedPhoto(file);
+      setAvatarError(null);
+    }}
+  />
+
+  <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+    <button
+      type="button"
+      disabled={!selectedPhoto || isUploadingPhoto}
+
+      onClick={async () => {
+
+        console.log("UPLOAD CLICKED");
+  console.log("selectedPhoto =", selectedPhoto);
+  if (!selectedPhoto) return;
+
+  try {
+    setIsUploadingPhoto(true);
+    setAvatarError(null);
+
+    const formData = new FormData();
+    formData.append("photo", selectedPhoto);
+
+    const res = await fetch(
+      "http://localhost:3000/api/avatar-generations/user/6/upload-photo",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error("Upload failed");
+    }
+
+    const data = await res.json();
+    console.log("upload success:", data);
+
+  } catch (err) {
+    console.error(err);
+    setAvatarError("Failed to upload photo");
+  } finally {
+    setIsUploadingPhoto(false);
+  }
+}}
+    >
+      {isUploadingPhoto ? "Uploading..." : "Upload photo"}
+    </button>
+
+    <button
+      type="button"
+      disabled={isGeneratingAvatar}
+
+      onClick={async () => {
+  try {
+    setIsGeneratingAvatar(true);
+    setAvatarError(null);
+
+    const res = await fetch(
+      "http://localhost:3000/api/avatar-generations/6/generate-from-photo",
+      {
+        method: "POST",
+      }
+    );
+
+    console.log("generate status =", res.status);
+
+    if (!res.ok) {
+      throw new Error("Generation failed");
+    }
+
+    const data = await res.json();
+    console.log("generation success:", data);
+
+    const latestRes = await fetch(
+      "http://localhost:3000/api/avatar-generations/user/6/latest"
+    );
+
+    console.log("latest status =", latestRes.status);
+
+    if (!latestRes.ok) {
+      throw new Error("Failed to fetch latest avatar");
+    }
+
+    const latestData = await latestRes.json();
+    console.log("latest avatar:", latestData);
+
+    if (latestData?.image_url) {
+  setAvatarUrl(
+    `http://localhost:3000${latestData.image_url}?t=${Date.now()}`
+  );
+}
+  } catch (err) {
+    console.error("GENERATION ERROR:", err);
+    setAvatarError("Failed to generate avatar");
+  } finally {
+    setIsGeneratingAvatar(false);
+  }
+}}
+    >
+      {isGeneratingAvatar ? "Generating..." : "Generate avatar"}
+    </button>
+  </div>
+
+  {avatarError && (
+    <p style={{ color: "crimson", marginTop: 8 }}>{avatarError}</p>
+  )}
+</div>
+
       {/* ГОРИЗОНТАЛЬНЫЕ фильтры + кнопки (Controls сам рисует inline-стилями) */}
       <Controls
         filters={filters} // текущее состояние фильтров
@@ -260,7 +398,7 @@ export default function App() {
         <aside>
           <h3>Fitting room</h3>
           <OutfitPreview
-            avatarUrl="/images/models/body_rectangle.png" // пока статичный аватар; можно подставлять по user.body_shape
+            avatarUrl={avatarUrl} // пока статичный аватар; можно подставлять по user.body_shape
             selectedBySlot={selectedBySlot} // надетые вещи
             layerOrder={["bottom", "top", "outerwear"]} // порядок слоёв
             onClear={clearAll} // кнопка «Clear all» под аватаром

@@ -36,3 +36,13 @@ export async function getOutfitSimple(params: {
   // Если всё прошло успешно — парсим ответ как JSON и возвращаем данные (массив одежды).
   return res.json();
 }
+
+export async function getLatestAvatarGeneration(userId: number) {
+  const res = await fetch(`http://localhost:3000/api/avatar-generations/user/${userId}/latest`);
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch latest avatar generation");
+  }
+
+  return res.json();
+}
