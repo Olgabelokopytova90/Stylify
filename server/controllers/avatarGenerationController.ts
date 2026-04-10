@@ -1,3 +1,6 @@
+import db from "../db/connect";
+import fs from "node:fs/promises";
+import { generateAvatarFromPhoto } from "../services/avatarGenerationService";
 import path from "node:path";
 import { editAvatarToBase as editAvatarToBaseService } from "../services/avatarGenerationService";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
@@ -17,6 +20,7 @@ interface AvatarGenerationController {
   getLatestAvatarByUserId: RequestHandler;
   generateAvatarWithAI: RequestHandler;
   editAvatarToBase: RequestHandler;
+  generateAvatarFromPhoto: RequestHandler;
 }
 
 
@@ -164,6 +168,82 @@ avatarGenerationController.generateAvatarWithAI = async (
       log: `generateAvatarWithAI: ${error}`,
       status: 500,
       message: { err: "Failed to generate avatar with AI" },
+    });
+  }
+};
+
+avatarGenerationController.generateAvatarFromPhoto = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const avatarId = Number(req.params.id);
+
+    if (!Number.isFinite(avatarId) || avatarId <= 0) {
+      return res.status(400).json({ error: "Invalid avatar generation id" });
+    }
+
+    const avatar = await getAvatarGenerationById(avatarId);
+
+    if (!avatar) {
+      return res.status(404).json({ error: "Avatar generation not found" });
+    }
+
+    const profileQuery = `
+      SELECT
+        id,
+        user_id,
+        gender_presentation,
+        body_shape,
+        height_bucket,
+        skin_tone,
+        hair_style,
+        hair_color,
+        style_preferences,
+        occasion_preferences,
+        avatar_image_url,
+        reference_photo_url,
+        created_at,
+        updated_at
+      FROM user_profiles
+      WHERE id = $1
+    `;
+
+    const profileResult = await db.query(profileQuery, [avatar.user_profile_id]);
+    const profile = profileResult.rows[0];
+
+    if (!profile) {
+      return res.status(404).json({ error: "User profile not found" });
+    }
+
+    if (!profile.reference_photo_url) {
+      return res.status(400).json({ error: "No reference photo found for this user profile" });
+    }
+
+    const sourceImagePath = path.resolve(
+      process.cwd(),
+      "public",
+      profile.reference_photo_url.replace(/^\//, "")
+    );
+
+    const generated = await generateAvatarFromPhoto({
+      generationId: avatarId,
+      sourceImagePath,
+    });
+
+    const updated = await updateAvatarGenerationById(avatarId, {
+      status: "ready",
+      imageUrl: generated.imageUrl,
+      layoutPreset: avatar.layout_preset,
+    });
+
+    return res.status(200).json(updated);
+  } catch (error) {
+    return next({
+      log: `generateAvatarFromPhoto: ${error}`,
+      status: 500,
+      message: { err: "Failed to generate avatar from uploaded photo" },
     });
   }
 };

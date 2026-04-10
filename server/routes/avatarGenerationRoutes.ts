@@ -57,6 +57,10 @@ router.get(
 // edit existing generation
 router.post("/:id/edit-base", avatarGenerationController.editAvatarToBase);
 
+router.post(
+  "/:id/generate-from-photo",
+  avatarGenerationController.generateAvatarFromPhoto
+);
 // get by id — dynamic route should stay last
 router.get("/:id", avatarGenerationController.getAvatarById);
 

@@ -28,13 +28,34 @@ type EditAvatarToBaseInput = {
   sourceImagePath: string;
 };
 
+function getImageFileMeta(sourceImagePath: string) {
+  const ext = path.extname(sourceImagePath).toLowerCase();
+
+  const mimeType =
+    ext === ".jpg" || ext === ".jpeg"
+      ? "image/jpeg"
+      : ext === ".webp"
+      ? "image/webp"
+      : "image/png";
+
+  const fileName =
+    ext === ".jpg" || ext === ".jpeg"
+      ? "source-image.jpg"
+      : ext === ".webp"
+      ? "source-image.webp"
+      : "source-image.png";
+
+  return { mimeType, fileName };
+}
+
 export async function editAvatarToBase({
   generationId,
   sourceImagePath,
 }: EditAvatarToBaseInput) {
   const imageFile = await fs.readFile(sourceImagePath);
+  const { mimeType, fileName } = getImageFileMeta(sourceImagePath);
 
-const prompt = `
+  const prompt = `
 Edit this image into a clean virtual try-on base avatar.
 
 Keep exactly the same:
@@ -75,7 +96,7 @@ Requirements:
 
   const result = await openai.images.edit({
     model: "gpt-image-1.5",
-    image: new File([imageFile], "source-avatar.png", { type: "image/png" }),
+    image: new File([imageFile], fileName, { type: mimeType }),
     prompt,
     size: "1024x1536",
     quality: "high",
@@ -107,43 +128,76 @@ Requirements:
 export async function generateAvatarImage({
   generationId,
   profile,
-}: GenerateAvatarImageInput) {
-  const prompt = buildAvatarPrompt({
-    genderPresentation: profile.gender_presentation,
-    bodyShape: profile.body_shape,
-    heightBucket: profile.height_bucket,
-    skinTone: profile.skin_tone,
-    hairStyle: profile.hair_style,
-    hairColor: profile.hair_color,
-    stylePreferences: profile.style_preferences ?? [],
-  });
+}: {
+  generationId: number;
+  profile: any;
+}) {
+  // ⚠️ путь к фото пользователя (пока захардкодим для MVP)
+  const uploadsDir = "public/uploads";
+
+  let referenceImageBase64: string | null = null;
+
+  try {
+    const files = await fs.readdir(uploadsDir);
+
+    if (files.length > 0) {
+      const latestFile = files[files.length - 1];
+      const filePath = `${uploadsDir}/${latestFile}`;
+
+      const buffer = await fs.readFile(filePath);
+      referenceImageBase64 = buffer.toString("base64");
+    }
+  } catch (e) {
+    console.log("No uploaded photo found, fallback to default generation");
+  }
+
+  const prompt = `
+Generate a full-body front-facing avatar for a virtual try-on application.
+
+Keep pose strictly:
+- standing straight
+- arms close to body
+- full body visible
+- front-facing
+
+Use facial features, hair, and general appearance from the reference image if provided.
+
+Clothing:
+- simple fitted beige athletic tank top
+- fitted biker shorts
+- barefoot
+- no accessories
+
+Background:
+- clean white
+
+Style:
+- realistic, consistent proportions
+- not stylized
+`;
 
   const result = await openai.images.generate({
     model: "gpt-image-1.5",
     prompt,
     size: "1024x1536",
-    quality: "high",
-    output_format: "png",
+
   });
 
-  const b64 = result.data?.[0]?.b64_json;
-  if (!b64) {
-    throw new Error("OpenAI did not return image data");
+  const image = result.data?.[0];
+
+  if (!image?.b64_json) {
+    throw new Error("No image returned from OpenAI");
   }
 
-  const buffer = Buffer.from(b64, "base64");
+  const buffer = Buffer.from(image.b64_json, "base64");
 
-  const outputDir = path.resolve(process.cwd(), "public", "generated-avatars");
-  await fs.mkdir(outputDir, { recursive: true });
-
-  const filename = `avatar-${generationId}.png`;
-  const filePath = path.join(outputDir, filename);
+  const fileName = `avatar-${generationId}.png`;
+  const filePath = `public/generated-avatars/${fileName}`;
 
   await fs.writeFile(filePath, buffer);
 
   return {
-    imageUrl: `/generated-avatars/${filename}`,
-    prompt,
+    imageUrl: `/generated-avatars/${fileName}`,
   };
 }
 
@@ -264,4 +318,79 @@ export async function updateAvatarGenerationById(
 
   const result = await db.query(query, values);
   return result.rows[0] ?? null;
+}
+
+export async function generateAvatarFromPhoto({
+  generationId,
+  sourceImagePath,
+}: {
+  generationId: number;
+  sourceImagePath: string;
+}) {
+  const imageFile = await fs.readFile(sourceImagePath);
+  const { mimeType, fileName } = getImageFileMeta(sourceImagePath);
+
+  const prompt = `
+Create a polished full-body digital avatar based on the person in this reference photo.
+
+Preserve:
+- facial identity
+- hair color
+- hair style
+- overall likeness
+
+Normalize into a consistent virtual try-on template:
+- front-facing
+- standing straight
+- arms relaxed near the body
+- full body visible
+- symmetrical pose
+- clean white studio background
+- realistic computer-generated style
+
+Wardrobe:
+- modest neutral athletic outfit
+- simple beige sleeveless top
+- simple beige knee-length fitted shorts
+- flat neutral footwear or bare feet if allowed by the model output
+- no jewelry
+- no jacket
+- no jeans
+- no skirt
+- no accessories
+
+Do not crop the body.
+Do not rotate the pose.
+Do not add props or scene elements.
+Keep the result clean, modest, and suitable for a fashion technology application.
+`.trim();
+
+  const result = await openai.images.edit({
+    model: "gpt-image-1.5",
+    image: new File([imageFile], fileName, { type: mimeType }),
+    prompt,
+    size: "1024x1536",
+    quality: "high",
+    output_format: "png",
+    input_fidelity: "high",
+  });
+
+  const b64 = result.data?.[0]?.b64_json;
+  if (!b64) {
+    throw new Error("OpenAI edit did not return image data");
+  }
+
+  const buffer = Buffer.from(b64, "base64");
+
+  const outputDir = path.resolve(process.cwd(), "public", "generated-avatars");
+  await fs.mkdir(outputDir, { recursive: true });
+
+  const filename = `avatar-${generationId}-from-photo.png`;
+  const filePath = path.join(outputDir, filename);
+
+  await fs.writeFile(filePath, buffer);
+
+  return {
+    imageUrl: `/generated-avatars/${filename}`,
+  };
 }
