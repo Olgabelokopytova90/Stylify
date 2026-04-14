@@ -14,12 +14,12 @@ export default function OutfitGrid({ items = [], onSelect }: Props) {
     }
   return (
     <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
-        gap: 12,
-      }}
-    >
+  style={{
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: "16px",
+}}
+>
       {items.map((item) => (
         <ItemCard
           key={`${item.category}_${item.id}_${item.image}`}

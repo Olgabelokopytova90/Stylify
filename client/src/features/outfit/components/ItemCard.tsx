@@ -17,69 +17,70 @@ export default function ItemCard({ item, onSelect }: Props) {
 
   // Возвращаем JSX — визуальную часть компонента
   console.log("ItemCard image:", item.image);
-  return (
-    // Обёртка карточки
+return (
+  <div
+    style={{
+  background: "#fffaf5",
+  border: "1px solid #e4d8cc",
+  borderRadius: "18px",
+  padding: "14px",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
+  minHeight: "280px",
+}}
+  >
+    {/* IMAGE */}
     <div
       style={{
-        border: "1px solid #e5e7eb", // светлая рамка вокруг карточки
-        borderRadius: 12, // скруглённые углы
-        padding: 10, // внутренние отступы
-        display: "flex", // используем flexbox
-        flexDirection: "column", // элементы располагаются вертикально
-        gap: 8, // расстояние между элементами
-        background: "#fff", // белый фон карточки
+        width: "100%",
+        height: 220,
+        borderRadius: 12,
+        background: "#f3ede7",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
       }}
     >
-      {/* Контейнер для изображения */}
-      <div
+      <img
+        src={image}
+        alt={name}
+        draggable={false}
         style={{
-          width: "100%", // занимает всю ширину карточки
-          height: 200, // фиксированная высота (чтобы карточки были одинаковые)
-          borderRadius: 10, // скруглённые углы
-          background: "#f5f5f7", // серый фон (если изображение не загрузилось)
-          display: "flex", // выравниваем изображение по центру
-          alignItems: "center", // по вертикали по центру
-          justifyContent: "center", // по горизонтали по центру
-          overflow: "hidden", // чтобы изображение не выходило за края
+          width: "90%",            // 🔥 НЕ 100% — выглядит аккуратнее
+          height: "100%",          // 🔥 теперь привязано к контейнеру
+          objectFit: "contain",
         }}
-      >
-        {/* Само изображение вещи */}
-        <img
-          src={image} // путь к изображению
-          alt={name} // альтернативный текст для доступности
-          draggable={false} // запрещаем перетаскивание картинки
-          style={{
-            width: "100%", // занимает всю ширину контейнера
-            height: "100%", // и всю высоту
-            objectFit: "contain", // изображение полностью видно, не обрезается
-          }}
-        />
-      </div>
-
-      {/* Название вещи */}
-      <div style={{ fontSize: 14, fontWeight: 600 }}>{name}</div>
-
-      {/* Категория (top, bottom, outerwear и т.д.) */}
-      <small style={{ opacity: 0.6 }}>{category}</small>
-
-      {/* Кнопка "Wear" — при нажатии вызывает функцию onSelect */}
-      <button
-        type="button"
-        onClick={() => onSelect(item)} // передаём выбранную вещь наверх (в OutfitPreview)
-        style={{
-          width: "100%", // занимает всю ширину карточки
-          borderRadius: 8, // закруглённые углы
-          padding: "10px 12px", // внутренние отступы
-          border: "1px solid #111", // чёрная рамка
-          background: "#111", // чёрный фон
-          color: "#fff", // белый текст
-          fontWeight: 600, // жирное начертание
-          cursor: "pointer", // курсор-рука при наведении
-          marginTop: 6, // небольшой отступ сверху
-        }}
-      >
-        Wear
-      </button>
+      />
     </div>
-  );
+
+    {/* CONTENT */}
+    <div style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 15, fontWeight: 600 }}>{name}</div>
+      <div style={{ fontSize: 12, color: "#8a817c", marginTop: 4 }}>
+        {category}
+      </div>
+    </div>
+
+    {/* BUTTON */}
+    <button
+      type="button"
+      onClick={() => onSelect(item)}
+      style={{
+        width: "100%",
+        borderRadius: 10,
+        padding: "12px",
+        border: "none",
+        background: "#1a1a1a",
+        color: "#fff",
+        fontWeight: 600,
+        cursor: "pointer",
+        marginTop: 12,
+      }}
+    >
+      Wear
+    </button>
+  </div>
+);
 }

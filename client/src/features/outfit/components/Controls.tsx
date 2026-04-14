@@ -108,40 +108,6 @@ export default function Controls({
           style={input}
         />
       </label>
-
-      {/* ===== BUTTONS ===== */}
-      <div style={{ display: "flex", gap: 10, marginLeft: "auto" }}>
-        {/* Кнопка "Generate outfit" — запускает генерацию */}
-        {onGenerate && (
-          <button
-            type="button"
-            onClick={onGenerate}
-            style={{
-              ...btn,
-              background: "linear-gradient(135deg,#7c5cff,#19d3da)", // градиент
-              color: "#0b0e1a", // тёмный текст
-            }}
-          >
-            Generate outfit
-          </button>
-        )}
-
-        {/* Кнопка "Clear all" — очищает фильтры */}
-        {onClear && (
-          <button
-            type="button"
-            onClick={onClear}
-            style={{
-              ...btn,
-              background: "rgba(255,255,255,.08)", // полупрозрачный фон
-              borderColor: "rgba(255,255,255,.15)", // светлая рамка
-              color: "inherit", // цвет текста по теме
-            }}
-          >
-            Clear all
-          </button>
-        )}
-      </div>
     </div>
   );
 }

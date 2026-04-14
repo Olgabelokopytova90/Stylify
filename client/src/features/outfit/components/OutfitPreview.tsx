@@ -73,9 +73,10 @@ export default function OutfitPreview({
           width, // используем проп width
           height, // и проп height
           border: "1px solid #ccc",
-          borderRadius: 10,
+          borderRadius: "20px",
           overflow: "hidden", // обрезаем всё, что выходит за края
           background: "#fafafa", // нейтральный фон
+
         }}
       >
         {/* Базовый аватар — лежит в нулевом слое (под одеждой) */}
@@ -83,13 +84,15 @@ export default function OutfitPreview({
           src={avatarUrl}
           alt="avatar"
           style={{
-            position: "absolute", // занимает всю область холста
-            inset: 0, // top/right/bottom/left = 0
-            width: "100%",
-            height: "100%",
-            objectFit: "contain", // целиком помещается, не обрезается
-            zIndex: 0, // под слоями одежды
-          }}
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%) scale(1.08)",
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  zIndex: 0,
+}}
         />
 
         {/* Рендер слоёв одежды в заданном порядке */}
@@ -152,19 +155,7 @@ export default function OutfitPreview({
       )}
 
       {/* Кнопка «Clear all» — снимает всю одежду */}
-      <button
-        onClick={onClear}
-        style={{
-          marginTop: 12,
-          padding: "6px 12px",
-          borderRadius: 8,
-          border: "1px solid #aaa",
-          background: "#fff",
-          cursor: "pointer",
-        }}
-      >
-        Clear all
-      </button>
+      
     </div>
   );
 }
