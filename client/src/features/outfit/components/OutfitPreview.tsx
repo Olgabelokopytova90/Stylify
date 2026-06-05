@@ -1,14 +1,16 @@
 // Импортируем типы для строгой типизации пропсов
 import type { Item, Slot, SelectedBySlot } from "../types";
+import { LAYOUT_PRESETS } from "../../../config/layoutPresets";
+import type { BodyPreset } from "../../../config/bodyPresets";
 
-// Описываем, какие пропсы принимает компонент
 interface Props {
-  avatarUrl: string; // URL базового аватара (по типу фигуры)
-  selectedBySlot: SelectedBySlot; // надетые вещи по слотам: { top?, bottom?, outerwear?, shoes? }
-  layerOrder: Slot[]; // порядок рисования слоёв (например: ["bottom","top","outerwear"])
-  onClear: () => void; // обработчик для кнопки «Clear all»
-  width?: number; // ширина «холста» примерочной (по умолчанию 360)
-  height?: number; // высота «холста» (по умолчанию 640)
+  avatarUrl: string;
+  selectedBySlot: SelectedBySlot;
+  layerOrder: Slot[];
+  onClear: () => void;
+  width?: number;
+  height?: number;
+  bodyPreset: BodyPreset; 
 }
 
 // --- Преднастройки области размещения одежды (в процентах от размеров холста) ---
@@ -59,49 +61,72 @@ export default function OutfitPreview({
   onClear,
   width = 360, // дефолтная ширина холста, если не передали
   height = 640, // дефолтная высота холста
+  bodyPreset
 }: Props) {
   // Утилита: конвертируем проценты в пиксели относительно width/height
   const toPx = (p: number, total: number) => (p / 100) * total;
 
+  const bodyTransform = {
+  rectangle: { scaleX: 1, scaleY: 1 },
+  pear: { scaleX: 1.08, scaleY: 1 },
+  hourglass: { scaleX: 0.95, scaleY: 1 },
+  apple: { scaleX: 1.1, scaleY: 0.95 },
+};
+
+//const { scaleX, scaleY } = bodyTransform[bodyPreset];
   return (
     // Внешний контейнер — центрируем содержимое и держим кнопку снизу
     <div style={{ textAlign: "center" }}>
       {/* Сам «холст» (канвас) примерочной */}
       <div
         style={{
-          position: "relative", // позволяем абсолютное позиционирование внутри
-          width, // используем проп width
-          height, // и проп height
-          border: "1px solid #ccc",
-          borderRadius: 10,
-          overflow: "hidden", // обрезаем всё, что выходит за края
-          background: "#fafafa", // нейтральный фон
-        }}
+  position: "relative",
+  width,
+  height,
+  overflow: "hidden",
+  background: "transparent",
+}}
       >
         {/* Базовый аватар — лежит в нулевом слое (под одеждой) */}
-        <img
-          src={avatarUrl}
-          alt="avatar"
-          style={{
-            position: "absolute", // занимает всю область холста
-            inset: 0, // top/right/bottom/left = 0
-            width: "100%",
-            height: "100%",
-            objectFit: "contain", // целиком помещается, не обрезается
-            zIndex: 0, // под слоями одежды
-          }}
-        />
+        <div
+  style={{
+    position: "absolute",
+    top: "53%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 0,
+  }}
+>
+  <img
+    src={avatarUrl}
+    alt="avatar"
+    style={{
+  maxWidth: "100%",
+  maxHeight: "100%",
+  objectFit: "contain",
+  borderRadius: "18px",
+  border: "1px solid rgba(80, 60, 40, 0.14)",
+  boxShadow: "0 16px 38px rgba(80, 60, 40, 0.18)",
+}}
+  />
+</div>
 
         {/* Рендер слоёв одежды в заданном порядке */}
         {layerOrder.map((slot, i) => {
           const item = selectedBySlot[slot]; // берём вещь для текущего слота
           if (!item) return null; // если ничего не надето — пропускаем
 
-          // Если это "top" и вещь — платье, используем прямоугольник для платья
-          const rect =
-            slot === "top" && isDress(item)
-              ? DRESS_RECT
-              : SLOT_RECT[slot as keyof typeof SLOT_RECT]; // иначе — преднастройки для слота
+         const presetRects = LAYOUT_PRESETS[bodyPreset];
+
+const rect =
+  slot === "top" && isDress(item)
+    ? DRESS_RECT
+    : presetRects[slot as keyof typeof presetRects]; // иначе — преднастройки для слота
 
           if (!rect) return null; // на случай, если слота нет в преднастройках
 
@@ -152,19 +177,7 @@ export default function OutfitPreview({
       )}
 
       {/* Кнопка «Clear all» — снимает всю одежду */}
-      <button
-        onClick={onClear}
-        style={{
-          marginTop: 12,
-          padding: "6px 12px",
-          borderRadius: 8,
-          border: "1px solid #aaa",
-          background: "#fff",
-          cursor: "pointer",
-        }}
-      >
-        Clear all
-      </button>
+      
     </div>
   );
 }

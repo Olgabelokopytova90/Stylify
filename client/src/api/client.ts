@@ -1,48 +1,100 @@
-// src/api/index.ts
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-// Определяем базовый адрес (URL) для API.
-// Если в окружении (файле .env) есть переменная VITE_API_URL — используем её.
-// Если нет (например, при локальной разработке), оставляем пустую строку (""),
-// и запросы пойдут на тот же домен, где запущено приложение.
-const API_BASE = import.meta.env.VITE_API_URL || ""; // dev: "", prod: https://...
+type GetOutfitSimpleParams = {
+  userId: number;
+  style: string;
+  season: string;
+  limit?: number;
+};
 
-// Экспортируем асинхронную функцию getOutfitSimple,
-// которая делает запрос к серверу и получает подборку одежды.
-export async function getOutfitSimple(params: {
-  userId: number; // id пользователя, по которому фильтруем аутфиты
-  style: string; // стиль одежды (casual, classic, sport и т.д.)
-  season: string; // сезон (summer, winter, etc.)
-  limit?: number; // необязательный параметр — ограничение количества вещей
-}) {
-  // Создаём объект URLSearchParams — он превращает объект в строку query-параметров (?key=value)
-  // Пример результата: "userId=1&style=casual&season=summer&limit=5"
+export async function getOutfitSimple(params: GetOutfitSimpleParams) {
   const q = new URLSearchParams({
-    userId: String(params.userId), // конвертируем userId в строку
-    style: params.style || "any", // если стиль не задан — подставляем "any"
-    season: params.season || "all", // если сезон не задан — подставляем "all"
-    ...(params.limit ? { limit: String(params.limit) } : {}), // добавляем limit, только если он указан
+    userId: String(params.userId),
+    style: params.style || "any",
+    season: params.season || "all",
+    ...(params.limit ? { limit: String(params.limit) } : {}),
   });
 
-  // Отправляем запрос на сервер, добавляя query-параметры к URL.
-  // `${API_BASE}` — это адрес сервера (например, http://localhost:3000)
-  // `/api/outfits/simple` — маршрут на сервере, который возвращает одежду
-  // `?${q.toString()}` — подставляем строку параметров из объекта выше
   const res = await fetch(`${API_BASE}/api/outfits/simple?${q.toString()}`);
 
-  // Проверяем, успешен ли ответ от сервера.
-  // Если код ответа не 200 (OK), выбрасываем ошибку, чтобы можно было поймать её выше.
-  if (!res.ok) throw new Error(`getOutfitSimple failed: ${res.status}`);
+  if (!res.ok) {
+    throw new Error(`getOutfitSimple failed: ${res.status}`);
+  }
 
-  // Если всё прошло успешно — парсим ответ как JSON и возвращаем данные (массив одежды).
   return res.json();
 }
 
 export async function getLatestAvatarGeneration(userId: number) {
-  const res = await fetch(`http://localhost:3000/api/avatar-generations/user/${userId}/latest`);
+  const res = await fetch(
+    `${API_BASE}/api/avatar-generations/user/${userId}/latest`
+  );
 
   if (!res.ok) {
-    throw new Error("Failed to fetch latest avatar generation");
+    throw new Error(`getLatestAvatarGeneration failed: ${res.status}`);
   }
 
   return res.json();
+}
+
+export async function uploadAvatarPhoto(userId: number, file: File) {
+  const formData = new FormData();
+  formData.append("photo", file);
+
+  const res = await fetch(
+    `${API_BASE}/api/avatar-photo/user/${userId}/upload-photo`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`uploadAvatarPhoto failed: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function createAvatarGeneration(userId: number) {
+  const res = await fetch(`${API_BASE}/api/avatar-generations/user/${userId}`, {
+    method: "POST",
+  });
+
+  if (!res.ok) {
+    throw new Error(`createAvatarGeneration failed: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function generateAvatarFromPhoto(
+  avatarId: number,
+  bodyType: "rectangle" | "pear" | "hourglass" | "apple"
+) {
+  const res = await fetch(
+    `${API_BASE}/api/avatar-generations/${avatarId}/generate-from-photo`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ bodyType }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`generateAvatarFromPhoto failed: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export function buildAvatarImageUrl(imagePath: string) {
+  if (!imagePath) return "";
+
+  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+    return imagePath;
+  }
+
+  return `${API_BASE}${imagePath}`;
 }

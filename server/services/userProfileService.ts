@@ -28,6 +28,7 @@ export async function createUserProfile(userId: number, profile: UserProfile) {
       style_preferences,
       occasion_preferences,
       avatar_image_url,
+      reference_photo_url,
       created_at,
       updated_at
   `;
@@ -63,6 +64,7 @@ export async function getUserProfileByUserId(userId: number) {
       style_preferences,
       occasion_preferences,
       avatar_image_url,
+      reference_photo_url,
       created_at,
       updated_at
     FROM user_profiles
@@ -103,6 +105,7 @@ export async function updateUserProfileByUserId(
       style_preferences,
       occasion_preferences,
       avatar_image_url,
+      reference_photo_url,
       created_at,
       updated_at
   `;
@@ -140,6 +143,7 @@ export async function deleteUserProfileByUserId(userId: number) {
       style_preferences,
       occasion_preferences,
       avatar_image_url,
+      reference_photo_url,
       created_at,
       updated_at
   `;

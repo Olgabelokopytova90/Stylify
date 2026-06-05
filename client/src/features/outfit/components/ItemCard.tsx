@@ -17,69 +17,86 @@ export default function ItemCard({ item, onSelect }: Props) {
 
   // Возвращаем JSX — визуальную часть компонента
   console.log("ItemCard image:", item.image);
-  return (
-    // Обёртка карточки
+return (
+  <div
+    style={{
+      background: "rgba(255, 250, 245, 0.82)",
+      border: "1px solid rgba(228, 216, 204, 0.7)",
+      borderRadius: "18px",
+      padding: "10px",
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "auto",
+      boxShadow: "0 6px 18px rgba(80, 60, 40, 0.06)",
+    }}
+  >
+    {/* IMAGE */}
     <div
       style={{
-        border: "1px solid #e5e7eb", // светлая рамка вокруг карточки
-        borderRadius: 12, // скруглённые углы
-        padding: 10, // внутренние отступы
-        display: "flex", // используем flexbox
-        flexDirection: "column", // элементы располагаются вертикально
-        gap: 8, // расстояние между элементами
-        background: "#fff", // белый фон карточки
+        width: "100%",
+        height: 220,
+        borderRadius: 14,
+        background: "rgba(243, 237, 231, 0.65)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
       }}
     >
-      {/* Контейнер для изображения */}
+      <img
+        src={image}
+        alt={name}
+        draggable={false}
+        style={{
+          width: "92%",
+          height: "92%",
+          objectFit: "contain",
+        }}
+      />
+    </div>
+
+    {/* CONTENT */}
+    <div
+      style={{
+        marginTop: 10,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+      }}
+    >
       <div
         style={{
-          width: "100%", // занимает всю ширину карточки
-          height: 200, // фиксированная высота (чтобы карточки были одинаковые)
-          borderRadius: 10, // скруглённые углы
-          background: "#f5f5f7", // серый фон (если изображение не загрузилось)
-          display: "flex", // выравниваем изображение по центру
-          alignItems: "center", // по вертикали по центру
-          justifyContent: "center", // по горизонтали по центру
-          overflow: "hidden", // чтобы изображение не выходило за края
+          fontSize: 14,
+          fontWeight: 700,
+          color: "#2e2a25",
+          lineHeight: 1.2,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
         }}
       >
-        {/* Само изображение вещи */}
-        <img
-          src={image} // путь к изображению
-          alt={name} // альтернативный текст для доступности
-          draggable={false} // запрещаем перетаскивание картинки
-          style={{
-            width: "100%", // занимает всю ширину контейнера
-            height: "100%", // и всю высоту
-            objectFit: "contain", // изображение полностью видно, не обрезается
-          }}
-        />
+        {name}
       </div>
 
-      {/* Название вещи */}
-      <div style={{ fontSize: 14, fontWeight: 600 }}>{name}</div>
-
-      {/* Категория (top, bottom, outerwear и т.д.) */}
-      <small style={{ opacity: 0.6 }}>{category}</small>
-
-      {/* Кнопка "Wear" — при нажатии вызывает функцию onSelect */}
       <button
         type="button"
-        onClick={() => onSelect(item)} // передаём выбранную вещь наверх (в OutfitPreview)
+        onClick={() => onSelect(item)}
         style={{
-          width: "100%", // занимает всю ширину карточки
-          borderRadius: 8, // закруглённые углы
-          padding: "10px 12px", // внутренние отступы
-          border: "1px solid #111", // чёрная рамка
-          background: "#111", // чёрный фон
-          color: "#fff", // белый текст
-          fontWeight: 600, // жирное начертание
-          cursor: "pointer", // курсор-рука при наведении
-          marginTop: 6, // небольшой отступ сверху
+          borderRadius: "999px",
+          padding: "7px 14px",
+          border: "none",
+          background: "#2e2a25",
+          color: "#fff",
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: "pointer",
+          flexShrink: 0,
         }}
       >
         Wear
       </button>
     </div>
-  );
+  </div>
+);
 }

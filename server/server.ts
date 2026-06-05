@@ -4,6 +4,7 @@ import "dotenv/config";
 import dotenv from "dotenv";
 import type { Request, Response, NextFunction } from "express";
 import express from "express";
+import cors from "cors";
 
 dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 
@@ -11,19 +12,26 @@ import db from "./db/connect";
 
 import outfitRoutes from "./routes/outfitRoutes";
 import userRouter from "./routes/userRoutes";
-import avatarRouter from "./routes/avatarRoutes";
 import itemRoutes from "./routes/itemRoutes";
 import userProfileRoutes from "./routes/userProfileRoutes";
 import avatarGenerationRoutes from "./routes/avatarGenerationRoutes";
+import avatarPhotoRoutes from "./routes/avatarPhotoRoutes"
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174"],
+    credentials: true,
+  })
+);
 
 console.log("DB URL starts with:", process.env.DATABASE_URL?.slice(0, 35));
 
 app.use(express.json());
 
-app.use("/generated-avatars", express.static(path.resolve(process.cwd(), "public", "generated-avatars")));
+app.use(express.static(path.resolve(process.cwd(), "public")));
 
 // health-check для оркестратора/браузера
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
@@ -49,11 +57,12 @@ app.get("/api/dbcheck", async (_req, res) => {
 })();
 
 app.use("/api/users", userRouter);
-app.use("/api/avatars", avatarRouter);
 app.use("/api/outfits", outfitRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/user-profiles", userProfileRoutes);
 app.use("/api/avatar-generations", avatarGenerationRoutes);
+app.use("/api/avatar-photo", avatarPhotoRoutes);
+
 
 app.use((req, res) => {
   res.status(404).send("oops, nothing here!");
