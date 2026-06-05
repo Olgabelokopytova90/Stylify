@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useState } from "react"; // хуки React
-import { getOutfitSimple, getLatestAvatarGeneration } from "../api/client"; // API-функция загрузки вещей (по фильтрам)
+import {
+  buildAvatarImageUrl,
+  createAvatarGeneration,
+  generateAvatarFromPhoto,
+  getLatestAvatarGeneration,
+  getOutfitSimple,
+  uploadAvatarPhoto,
+} from "../api/client";
+
 import type { Filters, Item, Slot, SelectedBySlot } from "../features/outfit/types"; // типы для строгой типизации
 import Layout from "../shared/ui/Layout"; // общий каркас страницы
 import Controls from "../features/outfit/components/Controls"; // панель фильтров и кнопок
 import OutfitGrid from "../features/outfit/components/OutfitGrid"; // сетка карточек одежды
 import OutfitPreview from "../features/outfit/components/OutfitPreview"; // «примерочная» с аватаром и слоями
 import "../styles/index.css"; // стили приложения
+import type { BodyPreset } from "../config/bodyPresets";
+
+
 
 
 
@@ -35,6 +46,8 @@ export default function App() {
 const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
 const [avatarError, setAvatarError] = useState<string | null>(null);
+const [photoUploaded, setPhotoUploaded] = useState(false);
+const [bodyPreset, setBodyPreset] = useState<BodyPreset>("hourglass");
 
   // порядок отрисовки слоёв на аватаре (низ под верхом, поверх — верхняя одежда)
   const layerOrder: Slot[] = ["bottom", "top", "outerwear"];
@@ -75,6 +88,20 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
     return bucket as any; // fallback (лучше не попадать сюда, но на всякий случай)
   };
 
+  const selectedPhotoPreviewUrl = useMemo(() => {
+  if (!selectedPhoto) return null;
+  return URL.createObjectURL(selectedPhoto);
+}, [selectedPhoto]);
+
+useEffect(() => {
+  return () => {
+    if (selectedPhotoPreviewUrl) {
+      URL.revokeObjectURL(selectedPhotoPreviewUrl);
+    }
+  };
+}, [selectedPhotoPreviewUrl]);
+
+
   // uniqueBy — удаляет дубликаты по ключу (например, "category__image")
   const uniqueBy = <T,>(arr: T[], keyOf: (x: T) => string) => {
     const seen = new Set<string>();
@@ -85,6 +112,31 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
       return true;
     });
   };
+
+  useEffect(() => {
+  let isMounted = true;
+
+  async function loadLatestAvatar() {
+    try {
+      const latest = await getLatestAvatarGeneration(6);
+
+      if (!isMounted) return;
+
+      if (latest?.image_url) {
+  setAvatarUrl(`${buildAvatarImageUrl(latest.image_url)}?t=${Date.now()}`);
+  setPhotoUploaded(true);
+}
+    } catch (err) {
+      console.error("Failed to load latest avatar:", err);
+    }
+  }
+
+  loadLatestAvatar();
+
+  return () => {
+    isMounted = false;
+  };
+}, []);
 
   // pick — выбирает случайный элемент массива (для генерации аутфита)
   const pick = <T,>(arr: T[]) =>
@@ -147,18 +199,6 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
     // запускаем эффект при изменении фильтров: style/season/limit
   }, [filters.style, filters.season, filters.limit]);
 
-//   useEffect(() => {
-//   getLatestAvatarGeneration(6)
-//     .then((data) => {
-//       if (data?.image_url) {
-//         setAvatarUrl(`http://localhost:3000${data.image_url}?t=${Date.now()}`);;
-//       }
-//     })
-//     .catch((e) => {
-//       console.error("Avatar fetch error:", e);
-//     });
-// }, []);
-
   // --------------- filtering for grid & generation (клиентская фильтрация) ---------------
   const filteredItems = useMemo(() => {
     // берём текущие значения фильтров в нижнем регистре
@@ -197,6 +237,17 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
     // если задан limit — обрезаем список, иначе возвращаем весь
     return filters.limit ? list.slice(0, filters.limit) : list;
   }, [allItems, filters]);
+
+  const BODY_BASE_IMAGE_MAP: Record<BodyPreset, string> = {
+  rectangle: "/rectangle_type.png",
+  pear: "/pear_type.png",
+  hourglass: "/hourglass_type.png",
+  apple: "/apple_type.png",
+};
+
+const currentBaseBodyUrl = BODY_BASE_IMAGE_MAP[bodyPreset];
+
+const previewAvatarUrl = avatarUrl ?? "";
 
   // --------------- wear / clear (надеть/снять) ---------------
   function equip(item: Item) {
@@ -248,21 +299,36 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
   return (
   <Layout>
     <div
-      style={{
-        background: "#efe6dc",
-        minHeight: "100vh",
-        padding: "16px 24px",
-        color: "#2e2a25",
-      }}
-    >
+ style={{
+  minHeight: "100vh",
+  padding: "8px 12px",
+  color: "#2e2a25",
+  boxSizing: "border-box",
+  backgroundImage:
+    "linear-gradient(rgba(239, 230, 220, 0.28), rgba(239, 230, 220, 0.28)), url('/boutique-bg.png')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+  backgroundAttachment: "fixed",
+}}
+>
+  <div
+  style={{
+    width: "96%",
+    maxWidth: "1280px",
+    margin: "0 auto",
+    paddingTop: "8px",
+  }}
+>
 
       {/* HEADER */}
       <header
   style={{
     background: "#f8f4ed",
     borderRadius: "20px",
-    padding: "12px 20px",
-    marginBottom: "16px",
+    padding: "16px 22px",
+    marginBottom: "14px",
+    minHeight: "64px",
     display: "grid",
     gridTemplateColumns: "1fr auto 1fr",
     alignItems: "center",
@@ -270,79 +336,161 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
   }}
 >
   {/* LEFT */}
-  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-    <button
-      onClick={() => document.getElementById("fileInput")?.click()}
-      style={{
-        background: "#d9c7b8",
-        border: "none",
-        borderRadius: "999px",
-        height: "40px",
-        padding: "0 16px",
-        fontWeight: 600,
-        cursor: "pointer",
-      }}
-    >
-      Upload photo
-    </button>
+  <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+  }}
+>
+  <button
+    onClick={() => document.getElementById("fileInput")?.click()}
+    style={{
+      background: "#d9c7b8",
+      border: "none",
+      borderRadius: "999px",
+      height: "34px",
+      padding: "0 14px",
+      fontWeight: 600,
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+    }}
+  >
+    Upload photo
+  </button>
 
-    <input
-      id="fileInput"
-      type="file"
-      accept="image/*"
-      style={{ display: "none" }}
-      onChange={(e) => {
-        const file = e.target.files?.[0] ?? null;
-        setSelectedPhoto(file);
+  <input
+    id="fileInput"
+    type="file"
+    accept="image/*"
+    style={{ display: "none" }}
+    onClick={(e) => {
+      (e.currentTarget as HTMLInputElement).value = "";
+    }}
+    onChange={async (e) => {
+      console.log("file input changed");
+
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setSelectedPhoto(file);
+      setAvatarError(null);
+      setPhotoUploaded(false);
+      setIsUploadingPhoto(true);
+
+      try {
+        const data = await uploadAvatarPhoto(6, file);
+        console.log("upload response:", data);
+        console.log("photo uploaded");
+        setPhotoUploaded(true);
+      } catch (err) {
+        console.error(err);
+        setAvatarError("Upload failed");
+        setPhotoUploaded(false);
+      } finally {
+        setIsUploadingPhoto(false);
+      }
+    }}
+  />
+
+  <button
+    disabled={isGeneratingAvatar || isUploadingPhoto || !photoUploaded}
+    onClick={async () => {
+      try {
+        setIsGeneratingAvatar(true);
         setAvatarError(null);
+
+        const created = await createAvatarGeneration(6);
+
+        await generateAvatarFromPhoto(created.id, bodyPreset);
+
+        const latestData = await getLatestAvatarGeneration(6);
+
+        if (latestData?.image_url) {
+          setAvatarUrl(
+            `${buildAvatarImageUrl(latestData.image_url)}?t=${Date.now()}`
+          );
+        }
+      } catch (err) {
+        console.error(err);
+        setAvatarError("Failed to generate avatar");
+      } finally {
+        setIsGeneratingAvatar(false);
+      }
+    }}
+    style={{
+      background:
+        isGeneratingAvatar || isUploadingPhoto || !photoUploaded
+          ? "#8f867e"
+          : "#2e2a25",
+      color: "#fff",
+      border: "none",
+      borderRadius: "999px",
+      height: "34px",
+      padding: "0 14px",
+      fontWeight: 600,
+      cursor:
+        isGeneratingAvatar || isUploadingPhoto || !photoUploaded
+          ? "not-allowed"
+          : "pointer",
+      opacity: isGeneratingAvatar || isUploadingPhoto || !photoUploaded ? 0.7 : 1,
+      whiteSpace: "nowrap",
+    }}
+  >
+    {isUploadingPhoto
+      ? "Uploading..."
+      : isGeneratingAvatar
+      ? "Generating..."
+      : "Generate avatar"}
+  </button>
+
+  {selectedPhotoPreviewUrl && (
+    <img
+      src={selectedPhotoPreviewUrl}
+      alt="Selected user photo"
+      style={{
+        width: 34,
+        height: 34,
+        borderRadius: "10px",
+        objectFit: "cover",
+        border: "1px solid rgba(46, 42, 37, 0.12)",
+        background: "#fff",
+        flexShrink: 0,
       }}
     />
+  )}
 
-    <button
-      disabled={isGeneratingAvatar}
-      onClick={async () => {
-        try {
-          setIsGeneratingAvatar(true);
-          setAvatarError(null);
+  <div
+    style={{
+      fontSize: 12,
+      color: avatarError ? "#8a2f2f" : "#5c5248",
+      fontWeight: 500,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      maxWidth: 150,
+    }}
+  >
 
-          const res = await fetch(
-            "http://localhost:3000/api/avatar-generations/6/generate-from-photo",
-            { method: "POST" }
-          );
-
-          if (!res.ok) throw new Error("Generation failed");
-
-          const latestRes = await fetch(
-            "http://localhost:3000/api/avatar-generations/user/6/latest"
-          );
-
-          const latestData = await latestRes.json();
-
-          if (latestData?.image_url) {
-            setAvatarUrl(
-              `http://localhost:3000${latestData.image_url}?t=${Date.now()}`
-            );
-          }
-        } catch (err) {
-          setAvatarError("Failed to generate avatar");
-        } finally {
-          setIsGeneratingAvatar(false);
-        }
-      }}
-      style={{
-        background: "#2e2a25",
-        color: "#fff",
-        border: "none",
-        borderRadius: "999px",
-        height: "40px",
-        padding: "0 18px",
-        fontWeight: 600,
-        cursor: "pointer",
-      }}
-    >
-      {isGeneratingAvatar ? "Generating..." : "Generate avatar"}
-    </button>
   </div>
+  <div
+    style={{
+      fontSize: 13,
+      color: avatarError ? "#8a2f2f" : "#5c5248",
+      fontWeight: 500,
+      lineHeight: 1.35,
+    }}
+  >
+    {avatarError
+      ? avatarError
+      : isUploadingPhoto
+      ? "Uploading photo..."
+      : photoUploaded
+      ? "Photo uploaded ✓"
+      : "Upload a photo to generate your avatar"}
+  </div>
+</div>
 
   {/* CENTER */}
   <div
@@ -397,16 +545,19 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
         {/* CATALOG */}
  <section
   style={{
-    background: "#f8f4ed",
-    borderRadius: "24px",
-    padding: "16px",
-    height: "820px",
-    overflowY: "auto",
-    overflowX: "hidden",
-    minHeight: 0,
-  }}
+  background: "rgba(248, 244, 237, 0.72)",
+  backdropFilter: "blur(10px)",
+  border: "1px solid rgba(255, 255, 255, 0.45)",
+  borderRadius: "24px",
+  padding: "10px",
+  height: "820px",
+  overflowY: "auto",
+  overflowX: "hidden",
+  minHeight: 0,
+  boxShadow: "0 12px 30px rgba(80, 60, 40, 0.08)",
+}}
 >
-          <h3 style={{ marginBottom: 12 }}>Catalog</h3>
+          <h3 style={{ margin: "0 0 8px" }}>Catalog</h3>
 
           <OutfitGrid items={filteredItems} onSelect={equip} />
         </section>
@@ -414,57 +565,23 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
         {/* AVATAR */}
         <section
   style={{
-    background: "#f5efe6",
-    borderRadius: "24px",
-    padding: "24px",
-    height: "820px", // ВОТ ЭТО КЛЮЧ
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  }}
+  background: "rgba(248, 244, 237, 0.58)",
+  backdropFilter: "blur(10px)",
+  border: "1px solid rgba(255, 255, 255, 0.45)",
+  borderRadius: "24px",
+  padding: "10px",
+  height: "820px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  position: "relative",
+  boxShadow: "0 12px 30px rgba(80, 60, 40, 0.08)",
+  overflow: "hidden",
+  width: "fit-content",
+justifySelf: "center",
+}}
 >
   {/* фон */}
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      background:
-        "radial-gradient(circle at center, #f8f4ed 0%, #e7ddd2 100%)",
-      borderRadius: "24px",
-      zIndex: 0,
-    }}
-  />
-
-  <div
-  style={{
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: "90px",
-    background:
-      "linear-gradient(90deg, rgba(214,195,173,0.9) 0%, rgba(214,195,173,0.45) 60%, rgba(214,195,173,0) 100%)",
-    borderTopLeftRadius: "24px",
-    borderBottomLeftRadius: "24px",
-    zIndex: 1,
-  }}
-/>
-{/* curtains */}
-<div
-  style={{
-    position: "absolute",
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: "90px",
-    background:
-      "linear-gradient(270deg, rgba(214,195,173,0.9) 0%, rgba(214,195,173,0.45) 60%, rgba(214,195,173,0) 100%)",
-    borderTopRightRadius: "24px",
-    borderBottomRightRadius: "24px",
-    zIndex: 1,
-  }}
-/>
 
 <div
   style={{
@@ -474,8 +591,7 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
     transform: "translateX(-50%)",
     width: "300px",
     height: "200px",
-    background:
-      "radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 70%)",
+    background: "rgba(248, 244, 237, 0.26)",
     filter: "blur(20px)",
     zIndex: 1,
   }}
@@ -495,98 +611,180 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
   />
 
   {/* аватар */}
-  <div style={{ position: "relative", zIndex: 2 }}>
-    {avatarUrl ? (
+  <div
+  style={{
+    position: "relative",
+    zIndex: 2,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 12,
+  }}
+>
   <OutfitPreview
-    avatarUrl={avatarUrl}
+    avatarUrl={previewAvatarUrl}
     selectedBySlot={selectedBySlot}
     layerOrder={["bottom", "top", "outerwear"]}
     onClear={clearAll}
-    width={420}
-    height={760}
+    width={560}
+    height={820}
+    bodyPreset={bodyPreset}
   />
-) : (
-  <div
-    style={{
-      width: "260px",
-      height: "520px",
-      borderRadius: "20px",
-      background: "rgba(255,255,255,0.35)",
-      border: "1px solid rgba(120, 95, 70, 0.08)",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "16px",
-      color: "#6b625b",
-      textAlign: "center",
-      padding: "24px",
-    }}
-  >
+
+  {isGeneratingAvatar && (
     <div
       style={{
-        width: "120px",
-        height: "120px",
+        fontSize: 14,
+        fontWeight: 600,
+        color: "#2e2a25",
+        background: "rgba(255,255,255,0.7)",
+        padding: "8px 14px",
         borderRadius: "999px",
-        background: "rgba(255,255,255,0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "32px",
       }}
     >
-      ✨
+      Generating avatar...
     </div>
+  )}
 
-    <div style={{ fontSize: "18px", fontWeight: 600 }}>
-      Your avatar will appear here
+  {!isGeneratingAvatar && avatarUrl && (
+    <div
+      style={{
+        fontSize: 14,
+        fontWeight: 600,
+        color: "#2e2a25",
+        background: "rgba(255,255,255,0.7)",
+        padding: "8px 14px",
+        borderRadius: "999px",
+      }}
+    >
+      Avatar generated
     </div>
+  )}
 
-    <div style={{ fontSize: "14px", lineHeight: 1.5 }}>
-      Upload a photo and generate a personalized fitting-room model.
+  {!isGeneratingAvatar && !avatarUrl && (
+    <div
+      style={{
+        fontSize: 14,
+        fontWeight: 500,
+        color: "#5c5248",
+        background: "rgba(255,255,255,0.7)",
+        padding: "8px 14px",
+        borderRadius: "999px",
+      }}
+    >
+      Your generated avatar will appear here
     </div>
-  </div>
-)}
-  </div>
+  )}
+
+  {avatarError && (
+    <div
+      style={{
+        fontSize: 14,
+        fontWeight: 600,
+        color: "#8a2f2f",
+        background: "rgba(255,255,255,0.85)",
+        padding: "8px 14px",
+        borderRadius: "999px",
+      }}
+    >
+      {avatarError}
+    </div>
+  )}
+</div>
+
 </section>
         {/* RIGHT PANEL */}
         <aside
+         style={{
+  background: "rgba(248, 244, 237, 0.72)",
+  backdropFilter: "blur(10px)",
+  border: "1px solid rgba(255, 255, 255, 0.45)",
+  borderRadius: "24px",
+  padding: "10px",
+  boxShadow: "0 12px 30px rgba(80, 60, 40, 0.08)",
+}}
+        >
+          <h3 style={{ margin: "0 0 8px", fontSize: 20 }}>Outfit Preview</h3>
+          <div
+  style={{
+    display: "grid",
+    gap: 10,
+    marginBottom: 16,
+  }}
+>
+  {(["top", "bottom", "outerwear", "shoes"] as Slot[]).map((slot) => {
+    const item = selectedBySlot[slot];
+
+    return (
+      <div
+        key={slot}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "56px 1fr",
+          gap: 10,
+          alignItems: "center",
+          background: "#fffaf5",
+          border: "1px solid #e4d8cc",
+          borderRadius: 14,
+          padding: 10,
+          minHeight: 70,
+        }}
+      >
+        <div
           style={{
-            background: "#f8f4ed",
-            borderRadius: "24px",
-            padding: "16px",
+            width: 56,
+            height: 56,
+            borderRadius: 10,
+            background: "#f3ede7",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
           }}
         >
-          <h3>Outfit Preview</h3>
+          {item ? (
+            <img
+              src={item.image}
+              alt={item.name}
+              style={{
+                width: "90%",
+                height: "90%",
+                objectFit: "contain",
+              }}
+            />
+          ) : (
+            <span style={{ fontSize: 11, color: "#8a817c" }}>
+              empty
+            </span>
+          )}
+        </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-
-            {Object.entries(selectedBySlot).map(([key, item]) =>
-              item ? (
-                <div
-                  key={key}
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "center",
-                    background: "#fffaf5",
-                    padding: "10px",
-                    borderRadius: "12px",
-                  }}
-                >
-                  <img
-                    src={item.image}
-                    style={{ width: 70, height: 70, objectFit: "contain" }}
-                  />
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{item.name}</div>
-                    <div style={{ fontSize: 12, opacity: 0.6 }}>{key}</div>
-                  </div>
-                </div>
-              ) : null
-            )}
-
+        <div>
+          <div
+            style={{
+              fontSize: 12,
+              color: "#8a817c",
+              textTransform: "capitalize",
+              marginBottom: 4,
+            }}
+          >
+            {slot}
           </div>
+
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#2e2a25",
+            }}
+          >
+            {item ? item.name : "Not selected"}
+          </div>
+        </div>
+      </div>
+    );
+  })}
+</div>
 
           <button
             onClick={generateOutfit}
@@ -618,6 +816,7 @@ const [avatarError, setAvatarError] = useState<string | null>(null);
           </button>
         </aside>
       </div>
+    </div>
     </div>
   </Layout>
 );

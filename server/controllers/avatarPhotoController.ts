@@ -53,6 +53,8 @@ avatarPhotoController.uploadPhoto = async (
     if (!rows.length) {
       return res.status(404).json({ error: "User profile not found" });
     }
+console.log("uploadPhoto saved imageUrl:", imageUrl);
+console.log("uploadPhoto updated profile reference_photo_url:", rows[0].reference_photo_url);
 
     return res.status(201).json({
       message: "Photo uploaded successfully",

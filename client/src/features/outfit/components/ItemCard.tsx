@@ -20,23 +20,23 @@ export default function ItemCard({ item, onSelect }: Props) {
 return (
   <div
     style={{
-  background: "#fffaf5",
-  border: "1px solid #e4d8cc",
-  borderRadius: "18px",
-  padding: "14px",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-  minHeight: "280px",
-}}
+      background: "rgba(255, 250, 245, 0.82)",
+      border: "1px solid rgba(228, 216, 204, 0.7)",
+      borderRadius: "18px",
+      padding: "10px",
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "auto",
+      boxShadow: "0 6px 18px rgba(80, 60, 40, 0.06)",
+    }}
   >
     {/* IMAGE */}
     <div
       style={{
         width: "100%",
         height: 220,
-        borderRadius: 12,
-        background: "#f3ede7",
+        borderRadius: 14,
+        background: "rgba(243, 237, 231, 0.65)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -48,39 +48,55 @@ return (
         alt={name}
         draggable={false}
         style={{
-          width: "90%",            // 🔥 НЕ 100% — выглядит аккуратнее
-          height: "100%",          // 🔥 теперь привязано к контейнеру
+          width: "92%",
+          height: "92%",
           objectFit: "contain",
         }}
       />
     </div>
 
     {/* CONTENT */}
-    <div style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 15, fontWeight: 600 }}>{name}</div>
-      <div style={{ fontSize: 12, color: "#8a817c", marginTop: 4 }}>
-        {category}
-      </div>
-    </div>
-
-    {/* BUTTON */}
-    <button
-      type="button"
-      onClick={() => onSelect(item)}
+    <div
       style={{
-        width: "100%",
-        borderRadius: 10,
-        padding: "12px",
-        border: "none",
-        background: "#1a1a1a",
-        color: "#fff",
-        fontWeight: 600,
-        cursor: "pointer",
-        marginTop: 12,
+        marginTop: 10,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
       }}
     >
-      Wear
-    </button>
+      <div
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: "#2e2a25",
+          lineHeight: 1.2,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {name}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onSelect(item)}
+        style={{
+          borderRadius: "999px",
+          padding: "7px 14px",
+          border: "none",
+          background: "#2e2a25",
+          color: "#fff",
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: "pointer",
+          flexShrink: 0,
+        }}
+      >
+        Wear
+      </button>
+    </div>
   </div>
 );
 }
