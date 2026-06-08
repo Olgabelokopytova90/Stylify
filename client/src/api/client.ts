@@ -24,7 +24,7 @@ export async function getOutfitSimple(params: GetOutfitSimpleParams) {
   return res.json();
 }
 
-export async function getLatestAvatarGeneration(userId: number) {
+export async function getLatestAvatarGeneration(userId: string) {
   const res = await fetch(
     `${API_BASE}/api/avatar-generations/user/${userId}/latest`
   );
@@ -36,7 +36,7 @@ export async function getLatestAvatarGeneration(userId: number) {
   return res.json();
 }
 
-export async function uploadAvatarPhoto(userId: number, file: File) {
+export async function uploadAvatarPhoto(userId: string, file: File) {
   const formData = new FormData();
   formData.append("photo", file);
 
@@ -55,7 +55,7 @@ export async function uploadAvatarPhoto(userId: number, file: File) {
   return res.json();
 }
 
-export async function createAvatarGeneration(userId: number) {
+export async function createAvatarGeneration(userId: string) {
   const res = await fetch(`${API_BASE}/api/avatar-generations/user/${userId}`, {
     method: "POST",
   });
