@@ -15,19 +15,30 @@ interface UserProfileController {
 
 const userProfileController = {} as UserProfileController;
 
+function getValidUserId(req: Request): string | null {
+  const { userId } = req.params;
+
+  if (!userId || Array.isArray(userId)) {
+    return null;
+  }
+
+  return userId;
+}
+
 userProfileController.createProfile = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const userId = Number(req.params.userId);
+    const userId = getValidUserId(req);
 
-    if (!Number.isFinite(userId) || userId <= 0) {
+    if (!userId) {
       return res.status(400).json({ error: "Invalid user id" });
     }
 
     const existing = await getUserProfileByUserId(userId);
+
     if (existing) {
       return res.status(409).json({ error: "User profile already exists" });
     }
@@ -84,9 +95,9 @@ userProfileController.getProfileByUserId = async (
   next: NextFunction
 ) => {
   try {
-    const userId = Number(req.params.userId);
+    const userId = getValidUserId(req);
 
-    if (!Number.isFinite(userId) || userId <= 0) {
+    if (!userId) {
       return res.status(400).json({ error: "Invalid user id" });
     }
 
@@ -112,9 +123,9 @@ userProfileController.updateProfileByUserId = async (
   next: NextFunction
 ) => {
   try {
-    const userId = Number(req.params.userId);
+    const userId = getValidUserId(req);
 
-    if (!Number.isFinite(userId) || userId <= 0) {
+    if (!userId) {
       return res.status(400).json({ error: "Invalid user id" });
     }
 
@@ -140,9 +151,9 @@ userProfileController.deleteProfileByUserId = async (
   next: NextFunction
 ) => {
   try {
-    const userId = Number(req.params.userId);
+    const userId = getValidUserId(req);
 
-    if (!Number.isFinite(userId) || userId <= 0) {
+    if (!userId) {
       return res.status(400).json({ error: "Invalid user id" });
     }
 

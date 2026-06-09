@@ -264,7 +264,7 @@ export async function getAvatarGenerationById(id: number) {
   return result.rows[0] ?? null;
 }
 
-export async function getLatestAvatarGenerationByUserProfileId(userProfileId: number) {
+export async function getLatestAvatarGenerationByUserProfileId(userProfileId: string) {
   const result = await db.query(
     `SELECT * FROM avatar_generations
      WHERE user_profile_id = $1

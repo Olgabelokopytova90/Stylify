@@ -1,7 +1,7 @@
 import db from "../db/connect";
 import type { UserProfile } from "../types/userProfile";
 
-export async function createUserProfile(userId: number, profile: UserProfile) {
+export async function createUserProfile(userId: string, profile: UserProfile) {
   const query = `
     INSERT INTO user_profiles (
       user_id,
@@ -50,25 +50,20 @@ export async function createUserProfile(userId: number, profile: UserProfile) {
   return result.rows[0];
 }
 
-export async function getUserProfileByUserId(userId: number) {
+export async function getUserProfileByUserId(userId: string) {
   const query = `
     SELECT
       id,
-      user_id,
-      gender_presentation,
-      body_shape,
-      height_bucket,
-      skin_tone,
-      hair_style,
-      hair_color,
-      style_preferences,
-      occasion_preferences,
-      avatar_image_url,
+      id as user_id,
+      display_name,
+      body_type as body_shape,
+      fit_preference,
+      onboarding_completed,
       reference_photo_url,
       created_at,
       updated_at
-    FROM user_profiles
-    WHERE user_id = $1
+    FROM profiles
+    WHERE id = $1
   `;
 
   const result = await db.query(query, [userId]);
@@ -76,7 +71,7 @@ export async function getUserProfileByUserId(userId: number) {
 }
 
 export async function updateUserProfileByUserId(
-  userId: number,
+  userId: string,
   updates: Partial<UserProfile>
 ) {
   const query = `
@@ -127,7 +122,7 @@ export async function updateUserProfileByUserId(
   return result.rows[0] ?? null;
 }
 
-export async function deleteUserProfileByUserId(userId: number) {
+export async function deleteUserProfileByUserId(userId: string) {
   const query = `
     DELETE FROM user_profiles
     WHERE user_id = $1
