@@ -13,11 +13,12 @@ avatarPhotoController.uploadPhoto = async (
   next: NextFunction
 ) => {
   try {
-    const userId = Number(req.params.userId);
+    
+    const userId = req.params.userId;
 
-    if (!Number.isFinite(userId) || userId <= 0) {
-      return res.status(400).json({ error: "Invalid user id" });
-    }
+if (!userId) {
+  return res.status(400).json({ error: "Invalid user id" });
+}
 
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
@@ -26,27 +27,21 @@ avatarPhotoController.uploadPhoto = async (
     const imageUrl = `/uploads/${req.file.filename}`;
 
     const updateQuery = `
-      UPDATE user_profiles
-      SET
-        reference_photo_url = $1,
-        updated_at = NOW()
-      WHERE user_id = $2
-      RETURNING
-        id,
-        user_id,
-        gender_presentation,
-        body_shape,
-        height_bucket,
-        skin_tone,
-        hair_style,
-        hair_color,
-        style_preferences,
-        occasion_preferences,
-        avatar_image_url,
-        reference_photo_url,
-        created_at,
-        updated_at
-    `;
+  UPDATE profiles
+  SET
+    reference_photo_url = $1,
+    updated_at = NOW()
+  WHERE id = $2
+  RETURNING
+    id,
+    display_name,
+    body_type,
+    fit_preference,
+    onboarding_completed,
+    reference_photo_url,
+    created_at,
+    updated_at
+`;
 
     const { rows } = await db.query(updateQuery, [imageUrl, userId]);
 

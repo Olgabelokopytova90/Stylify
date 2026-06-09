@@ -37,10 +37,13 @@ avatarGenerationController.createAvatar = async (
   req: Request, res: Response, next: NextFunction
 ) => {
   try {
-    const userId = Number(req.params.userId);
-    if (!Number.isFinite(userId) || userId <= 0) {
-      return res.status(400).json({ error: "Invalid user id" });
-    }
+
+    const userId = req.params.userId;
+
+if (!userId || Array.isArray(userId)) {
+  return res.status(400).json({ error: "Invalid user id" });
+}
+
     const profile = await getUserProfileByUserId(userId);
     if (!profile) {
       return res.status(404).json({ error: "User profile not found" });
@@ -79,10 +82,17 @@ avatarGenerationController.generateAvatarFromPhoto = async (
     }
 
     const profileResult = await db.query(
-      `SELECT id, reference_photo_url FROM user_profiles WHERE id = $1`,
-      [avatar.user_profile_id]
-    );
-    const profile = profileResult.rows[0];
+  `
+    SELECT
+      id,
+      reference_photo_url
+    FROM profiles
+    WHERE id = $1
+  `,
+  [avatar.user_profile_id]
+);
+
+const profile = profileResult.rows[0];
 
     if (!profile) {
       return res.status(404).json({ error: "User profile not found" });
@@ -146,10 +156,12 @@ avatarGenerationController.getLatestAvatarByUserId = async (
   req: Request, res: Response, next: NextFunction
 ) => {
   try {
-    const userId = Number(req.params.userId);
-    if (!Number.isFinite(userId) || userId <= 0) {
+    const userId = req.params.userId;
+
+    if (!userId || Array.isArray(userId)) {
       return res.status(400).json({ error: "Invalid user id" });
     }
+    
     const profile = await getUserProfileByUserId(userId);
     if (!profile) {
       return res.status(404).json({ error: "User profile not found" });

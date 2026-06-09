@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { getProfile } from '../api/client'
 
 export default function LoginPage() {
   const { signIn } = useAuth()
@@ -17,8 +18,16 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      await signIn(email, password)
-      navigate('/app')
+      const loggedInUser = await signIn(email, password);
+
+const profile = await getProfile(loggedInUser.id);
+
+if (profile.onboarding_completed) {
+  navigate("/app");
+} else {
+  navigate("/onboarding");
+}
+
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Login failed')
     } finally {

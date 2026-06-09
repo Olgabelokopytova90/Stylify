@@ -6,6 +6,8 @@ import {
   getLatestAvatarGeneration,
   getOutfitSimple,
   uploadAvatarPhoto,
+  getProfile,
+  saveAvatarRecord
 } from "../api/client";
 
 import { useAuth } from '../context/AuthContext'
@@ -46,6 +48,29 @@ if (!currentUserId) {
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [photoUploaded, setPhotoUploaded] = useState(false);
   const [bodyPreset, setBodyPreset] = useState<BodyPreset>("hourglass");
+
+  useEffect(() => {
+  async function loadUserProfile() {
+    if (!currentUserId) return;
+
+    try {
+      const profile = await getProfile(currentUserId);
+
+      if (
+        profile.body_type === "rectangle" ||
+        profile.body_type === "pear" ||
+        profile.body_type === "hourglass" ||
+        profile.body_type === "apple"
+      ) {
+        setBodyPreset(profile.body_type);
+      }
+    } catch (error) {
+      console.error("Failed to load user profile:", error);
+    }
+  }
+
+  void loadUserProfile();
+}, [currentUserId]);
 
   const normalizeCategory = (raw: string | undefined, bucket: string) => {
     const v = (raw ?? "").toLowerCase();
@@ -352,15 +377,18 @@ if (!currentUserId) {
                     setAvatarError(null);
 
                     const created = await createAvatarGeneration(currentUserId);
+
                     await generateAvatarFromPhoto(created.id, bodyPreset);
 
                     const latestData = await getLatestAvatarGeneration(currentUserId);
 
-                    if (latestData?.image_url) {
-                      setAvatarUrl(
-                        `${buildAvatarImageUrl(latestData.image_url)}?t=${Date.now()}`
-                      );
-                    }
+if (latestData?.image_url) {
+  await saveAvatarRecord(currentUserId, latestData.image_url);
+
+  setAvatarUrl(
+    `${buildAvatarImageUrl(latestData.image_url)}?t=${Date.now()}`
+  );
+}
                   } catch (err) {
                     console.error(err);
                     setAvatarError("Failed to generate avatar");

@@ -4,6 +4,7 @@ import SignupPage from '../pages/SignupPage'
 import ProtectedRoute from './ProtectedRoute'
 import PublicRoute from './PublicRoute'
 import StylifyApp from './StylifyApp'
+import OnboardingPage from '../pages/OnboardingPage'
 
 export default function App() {
   return (
@@ -25,6 +26,15 @@ export default function App() {
               <SignupPage />
             </PublicRoute>
           }
+        />
+
+        <Route
+        path='/onboarding'
+        element={
+          <ProtectedRoute>
+            <OnboardingPage />
+          </ProtectedRoute>
+        }
         />
 
         <Route
