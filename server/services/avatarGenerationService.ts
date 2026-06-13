@@ -297,4 +297,18 @@ export async function updateAvatarGenerationById(
   );
 
   return result.rows[0] ?? null;
+};
+
+export async function countAvatarGenerationsThisMonth(userProfileId: string) {
+  const result = await db.query(
+    `
+      SELECT COUNT(*)::int AS count
+      FROM avatar_generations
+      WHERE user_profile_id = $1
+        AND created_at >= date_trunc('month', NOW())
+    `,
+    [userProfileId]
+  );
+
+  return result.rows[0]?.count ?? 0;
 }

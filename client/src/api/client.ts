@@ -102,8 +102,19 @@ export async function generateAvatarFromPhoto(
   );
 
   if (!res.ok) {
-    throw new Error(`generateAvatarFromPhoto failed: ${res.status}`);
+  const errorData = await res.json().catch(() => null);
+
+  if (res.status === 429) {
+    throw new Error(
+      errorData?.error ||
+        "You’ve reached your monthly avatar generation limit. Please try again next month."
+    );
   }
+
+  throw new Error(
+    errorData?.error || `Avatar generation failed. Please try again.`
+  );
+}
 
   return res.json();
 }
@@ -188,6 +199,17 @@ export async function saveStylePreferences(userId: string, styles: string[]) {
 
   return data;
 };
+
+export async function getStylePreferences(userId: string) {
+  const { data, error } = await supabase
+    .from("user_style_preferences")
+    .select("style")
+    .eq("user_id", userId);
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => row.style);
+}
 
 export async function deleteStylePreferences(userId: string) {
   const { error } = await supabase
