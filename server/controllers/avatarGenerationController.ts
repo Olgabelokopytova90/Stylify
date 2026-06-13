@@ -7,7 +7,7 @@ import {
   getAvatarGenerationById,
   getLatestAvatarGenerationByUserProfileId,
   updateAvatarGenerationById,
-  generateAvatarFromPhoto,
+  generateAvatarFromPhoto, countAvatarGenerationsThisMonth
 } from "../services/avatarGenerationService";
 
 import { getUserProfileByUserId } from "../services/userProfileService";
@@ -96,10 +96,21 @@ const profile = profileResult.rows[0];
 
     if (!profile) {
       return res.status(404).json({ error: "User profile not found" });
-    }
+    };
+
     if (!profile.reference_photo_url) {
       return res.status(400).json({ error: "No reference photo found. Please upload a photo first." });
-    }
+    };
+
+    const monthlyGenerationCount = await countAvatarGenerationsThisMonth(
+  avatar.user_profile_id
+);
+
+if (monthlyGenerationCount > 3) {
+  return res.status(429).json({
+    error: "Monthly avatar generation limit reached. Please try again next month.",
+  });
+}
 
     const sourceImagePath = path.resolve(
       process.cwd(), "public",

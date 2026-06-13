@@ -25,22 +25,23 @@ export default function ProtectedRoute({
       }
 
       try {
-        const profile = await getProfile(user.id);
+  const profile = await getProfile(user.id);
 
-        const isOnboardingPage = location.pathname === "/onboarding";
+  const isOnboardingPage = location.pathname === "/onboarding";
+  const isEditOnboarding = location.search.includes("mode=edit");
 
-        if (!profile.onboarding_completed && !isOnboardingPage) {
-          setRedirectTo("/onboarding");
-          return;
-        }
+  if (!profile.onboarding_completed && !isOnboardingPage) {
+    setRedirectTo("/onboarding");
+    return;
+  }
 
-        if (profile.onboarding_completed && isOnboardingPage) {
-          setRedirectTo("/app");
-          return;
-        }
+  if (profile.onboarding_completed && isOnboardingPage && !isEditOnboarding) {
+    setRedirectTo("/app");
+    return;
+  }
 
-        setRedirectTo(null);
-      } catch (error) {
+  setRedirectTo(null);
+} catch (error) {
         console.error("Failed to check protected profile:", error);
         setRedirectTo("/onboarding");
       } finally {

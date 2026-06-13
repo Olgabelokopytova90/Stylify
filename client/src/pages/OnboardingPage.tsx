@@ -1,7 +1,14 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { saveOnboardingProfile } from "../api/client";
+import {
+  saveOnboardingProfile,
+  uploadAvatarPhoto,
+  createAvatarGeneration,
+  generateAvatarFromPhoto,
+  getLatestAvatarGeneration,
+  saveAvatarRecord, getProfile, getStylePreferences
+} from "../api/client";
 
 const bodyTypes = [
   { label: "Hourglass", value: "hourglass", icon: "⌛" },
@@ -32,14 +39,74 @@ const styleOptions = [
 export default function OnboardingPage() {
   const [displayName, setDisplayName] = useState("");
   const [bodyType, setBodyType] = useState("");
+  const [initialBodyType, setInitialBodyType] = useState("");
   const [fitPreference, setFitPreference] = useState("");
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+const [selectedPhotoPreviewUrl, setSelectedPhotoPreviewUrl] = useState("");
+const [photoUploaded, setPhotoUploaded] = useState(false);
+const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
 
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
+const { user, signOut } = useAuth();
+const navigate = useNavigate();
+const location = useLocation();
+
+const isEditMode = location.search.includes("mode=edit");
+  
 
   const [errorMessage, setErrorMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+  async function loadExistingProfile() {
+    if (!user?.id || !isEditMode) return;
+
+    try {
+      const profile = await getProfile(user.id);
+      const styles = await getStylePreferences(user.id);
+
+      setDisplayName(profile.display_name || "");
+      setBodyType(profile.body_type || "");
+setInitialBodyType(profile.body_type || "");
+      setFitPreference(profile.fit_preference || "");
+      setSelectedStyles(styles);
+      setPhotoUploaded(Boolean(profile.reference_photo_url));
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Failed to load your style profile.");
+    }
+  }
+
+  void loadExistingProfile();
+}, [user?.id, isEditMode]);
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (!user?.id) {
+    setErrorMessage("User session was not found. Please sign in again.");
+    return;
+  }
+
+  setSelectedPhoto(file);
+  setSelectedPhotoPreviewUrl(URL.createObjectURL(file));
+  setPhotoUploaded(false);
+  setErrorMessage("");
+  setIsUploadingPhoto(true);
+
+  try {
+    await uploadAvatarPhoto(user.id, file);
+    setPhotoUploaded(true);
+  } catch (error) {
+    console.error(error);
+    setErrorMessage("Failed to upload photo. Please try again.");
+    setPhotoUploaded(false);
+  } finally {
+    setIsUploadingPhoto(false);
+  }
+}
 
   function toggleStyle(style: string) {
     setSelectedStyles((current) =>
@@ -75,25 +142,58 @@ export default function OnboardingPage() {
     return;
   }
 
+  if (!photoUploaded) {
+  setErrorMessage("Please upload a reference photo before continuing.");
+  return;
+}
+
   setErrorMessage("");
   setIsSaving(true);
 
   try {
-    await saveOnboardingProfile(user.id, {
-      display_name: displayName.trim(),
-      body_type: bodyType,
-      fit_preference: fitPreference,
-      styles: selectedStyles,
-    });
+  await saveOnboardingProfile(user.id, {
+    display_name: displayName.trim(),
+    body_type: bodyType,
+    fit_preference: fitPreference,
+    styles: selectedStyles,
+  });
 
-    navigate("/app");
-  } catch (error) {
+  const shouldGenerateAvatar =
+  !isEditMode || Boolean(selectedPhoto) || bodyType !== initialBodyType;
+
+if (shouldGenerateAvatar) {
+  setIsGeneratingAvatar(true);
+
+  const avatarBodyType =
+    bodyType === "rectangle" ||
+    bodyType === "pear" ||
+    bodyType === "hourglass" ||
+    bodyType === "apple"
+      ? bodyType
+      : "rectangle";
+
+  const created = await createAvatarGeneration(user.id);
+
+  await generateAvatarFromPhoto(created.id, avatarBodyType);
+
+  const latestAvatar = await getLatestAvatarGeneration(user.id);
+
+  if (latestAvatar?.image_url) {
+    await saveAvatarRecord(user.id, latestAvatar.image_url);
+  }
+}
+
+navigate("/app");
+
+} catch (error) {
     console.error(error);
     setErrorMessage(
       error instanceof Error ? error.message : "Failed to save onboarding profile."
     );
   } finally {
     setIsSaving(false);
+setIsGeneratingAvatar(false);
+
   }
 }
 
@@ -202,26 +302,30 @@ export default function OnboardingPage() {
   style={{
     display: "grid",
     gridTemplateColumns: "430px 1fr",
-    minHeight: "calc(92vh - 86px)",
+    height: "calc(92vh - 86px)",
+    minHeight: 0,
   }}
 >
-          <aside
-  style={{
-    minHeight: "100%",
-    backgroundImage: "url('/images/onboarding-panel.png')",
-    backgroundSize: "cover",
-    backgroundPosition: "center top",
-    backgroundRepeat: "no-repeat",
-    borderRight: "1px solid #e6d9cc",
-  }}
-/>
+  <aside
+    style={{
+      height: "100%",
+      minHeight: 0,
+      backgroundImage: "url('/images/onboarding-panel.png')",
+      backgroundSize: "cover",
+      backgroundPosition: "center top",
+      backgroundRepeat: "no-repeat",
+      borderRight: "1px solid #e6d9cc",
+    }}
+  />
 
-          <section
-            style={{
-              background: "#fbf8f3",
-              padding: "64px 68px",
-            }}
-          >
+  <section
+    style={{
+      background: "#fbf8f3",
+      padding: "64px 68px",
+      overflowY: "auto",
+      minHeight: 0,
+    }}
+  >
             <p
               style={{
                 margin: "0 0 18px",
@@ -232,7 +336,7 @@ export default function OnboardingPage() {
                 fontSize: "12px",
               }}
             >
-              Welcome to Stylify
+              {isEditMode ? "Edit profile" : "Welcome to Stylify"}
             </p>
 
             <h1
@@ -245,7 +349,9 @@ export default function OnboardingPage() {
                 fontFamily: "serif",
               }}
             >
-              Let’s create your personal style profile
+              {isEditMode
+  ? "Update your personal style profile"
+  : "Let’s create your personal style profile"}
             </h1>
 
             <p
@@ -257,8 +363,9 @@ export default function OnboardingPage() {
                 lineHeight: 1.65,
               }}
             >
-              Tell us a few things about yourself so we can build your avatar
-              and recommend outfits you’ll love.
+              {isEditMode
+  ? "Adjust your saved preferences, update your photo, or regenerate your avatar."
+  : "Tell us a few things about yourself so we can build your avatar and recommend outfits you’ll love."}
             </p>
 
             <div style={{ display: "grid", gap: "34px" }}>
@@ -347,6 +454,93 @@ export default function OnboardingPage() {
               </section>
 
               <section>
+  <h2 style={sectionTitleStyle}>Upload your reference photo</h2>
+  <p style={sectionTextStyle}>
+    Add a clear front-facing photo so we can create your personalized avatar.
+  </p>
+
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: selectedPhotoPreviewUrl ? "160px 1fr" : "1fr",
+      gap: "18px",
+      alignItems: "center",
+      background: "#fffdf9",
+      border: photoUploaded ? "2px solid #a87445" : "1px solid #d9cabe",
+      borderRadius: "18px",
+      padding: "18px",
+    }}
+  >
+    {selectedPhotoPreviewUrl ? (
+      <img
+        src={selectedPhotoPreviewUrl}
+        alt="Selected reference"
+        style={{
+          width: "160px",
+          height: "160px",
+          borderRadius: "16px",
+          objectFit: "cover",
+          border: "1px solid #e4d8cc",
+          background: "#f3ede7",
+        }}
+      />
+    ) : null}
+
+    <div>
+      <input
+        id="onboardingPhotoInput"
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onClick={(e) => {
+          (e.currentTarget as HTMLInputElement).value = "";
+        }}
+        onChange={handlePhotoChange}
+      />
+
+      <button
+        type="button"
+        onClick={() =>
+          document.getElementById("onboardingPhotoInput")?.click()
+        }
+        disabled={isUploadingPhoto || isGeneratingAvatar}
+        style={{
+          height: "52px",
+          padding: "0 22px",
+          borderRadius: "999px",
+          border: "none",
+          background: "#2e2a25",
+          color: "#fff",
+          fontWeight: 800,
+          cursor:
+            isUploadingPhoto || isGeneratingAvatar ? "not-allowed" : "pointer",
+          opacity: isUploadingPhoto || isGeneratingAvatar ? 0.7 : 1,
+        }}
+      >
+        {isUploadingPhoto
+          ? "Uploading photo..."
+          : selectedPhoto
+          ? "Choose another photo"
+          : "Upload photo"}
+      </button>
+
+      <p
+        style={{
+          margin: "14px 0 0",
+          color: photoUploaded ? "#5c8a64" : "#7a6a60",
+          fontSize: "14px",
+          fontWeight: 600,
+        }}
+      >
+        {photoUploaded
+          ? "Photo uploaded ✓"
+          : "Your photo is required before creating an avatar."}
+      </p>
+    </div>
+  </div>
+</section>
+
+              <section>
                 <h2 style={sectionTitleStyle}>
                   Which styles do you love?{" "}
                   <span style={{ color: "#8a7667", fontSize: "16px" }}>
@@ -408,20 +602,26 @@ export default function OnboardingPage() {
 <button
   type="button"
   onClick={handleContinue}
-  disabled={isSaving}
+  disabled={isSaving || isUploadingPhoto || isGeneratingAvatar}
   style={{
     marginTop: "8px",
     height: "58px",
     borderRadius: "14px",
     border: "none",
-    background: isSaving ? "#8f867e" : "#a87445",
+    background: isSaving || isUploadingPhoto || isGeneratingAvatar ? "#8f867e" : "#a87445",
     color: "#fff",
     fontSize: "18px",
     fontWeight: 700,
-    cursor: isSaving ? "not-allowed" : "pointer",
+    cursor: isSaving || isUploadingPhoto || isGeneratingAvatar ? "not-allowed" : "pointer",
   }}
 >
-  {isSaving ? "Saving..." : "Continue →"}
+  {isGeneratingAvatar
+  ? "Creating your avatar..."
+  : isSaving
+  ? "Saving..."
+  : isEditMode
+  ? "Save changes →"
+  : "Continue →"}
 </button>
 
               <p
